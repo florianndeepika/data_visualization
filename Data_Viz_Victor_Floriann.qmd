@@ -1,0 +1,226 @@
+---
+title: "Data Visualization"
+author: "Victor & Floriann"
+format: 
+  html: 
+    code-fold: true
+    embed-resources: true
+    standalone: true
+---
+
+## Topic:
+**04_TwoNumOrdered**
+<br>
+<p align='justify'>
+1. Two numerical variables where one is ordered *(e.g.time)* and an additional categorical one *(Line plots, Area plots, Focusing, the Spaghetti plot problem)* (Inspiration from the stories 
+</p>
+<https://www.data-to-viz.com/story/TwoNumOrdered.html>, 
+<br> <https://www.data-to-viz.com/story/OneCatSevOrderedNum.html>, and 
+<br> <https://www.data-to-viz.com/caveat/spaghetti.html>)
+
+<p align='justify'>
+2. Tableau and Power BI
+</p>
+
+## Dataset
+<p align='justify'>
+1. Numerical variables where one is ordered (e.g. time) 
+2. Categorical one 
+</p>
+
+```{r}
+#| label: load-packages-and-data
+#| message: false
+library(tidyverse)
+library(gapminder)
+library(ggplot2)
+library(babynames)
+library(plotly)
+```
+
+**Dataset1: Bitcoin**
+
+```{r}
+#Data1
+# Load dataset from github
+bitcoin_data <- read.table("https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/3_TwoNumOrdered.csv", header=T)
+bitcoin_data$date <- as.Date(bitcoin_data$date)
+# Preview the data:
+head(bitcoin_data)
+```
+<p align='justify'>
+1. Numerical variable : `date`, `value`
+</p>
+
+**Dataset2: Babynames**
+
+```{r}
+#Data2
+# Save the babynames data into baby_data:
+babynames <- data.frame(babynames)
+# Preview the data:
+head(babynames)
+```
+<p align='justify'>
+1. Numerical variable : `year`, `n`, `prop`
+2. Categorical Variable : `sex`, `name` 
+</p>
+
+## Plots
+
+1. **Line plot**
+
+<p align='justify'>
+Line chart depicts the evolution of one or several numeric variables. In other words, a line plot shows how the value of something changes over time.
+</p>
+
+```{r}
+bitcoin_data %>%
+  ggplot( aes(x=date, y=value)) +
+    geom_line(color="#69b3a2") +
+    ggtitle("Line plot - Evolution of Bitcoin price") +
+    ylab("bitcoin price ($)") +
+    theme_light()
+```
+
+```{r}
+# Load dataset from github
+babynames <- babynames %>% 
+  filter(name %in% c("Ashley", "Amanda", "Jessica",    "Patricia", "Linda", "Deborah",   "Dorothy", "Betty", "Helen")) %>%
+  filter(sex=="F")
+
+babynames %>%
+  ggplot( aes(x=year, y=n, group=name, color=name)) +
+    geom_line() +
+    #scale_color_viridis(discrete = TRUE) +
+    theme(legend.position="none") +
+    ggtitle("Line plot - Popularity of American names in the previous 30 years") +
+    theme_light()
+```
+<p align='justify'>
+*Effective for*
+<br>
+**Comparing lots of data** all at once
+<br>
+1. Showing **changes and trends** over time
+<br>
+2. Including important **context and annotation**
+<br>
+3. Displaying **forecast data** and uncertainty
+<br>
+4. Highlighting **anomalies** within and across data series
+</p>
+<p align='justify'>
+*Not the ideal choice for*
+<br>
+1. Working with categorical data
+<br>
+Showing sparse data sets
+<br>
+3. It does not tell us anything about the causes behind the fluctuation in the data.
+<br>
+4. Quite confusing when there is larger number of variables.
+</p>
+
+2. **Area plot**
+<p align='justify'>
+An area graph is a specialized form of the line graph, where instead of simply connecting our data points with a continuous line, we also fill in the region below that line with a solid color. 
+</p>
+<p align='justify'>
+
+```{r}
+bitcoin_data %>%
+  ggplot( aes(x=date, y=value)) +
+    geom_area(fill="#69b3a2", alpha=0.5) +
+    geom_line(color="#69b3a2") +
+    ggtitle("Area chart - Evolution of Bitcoin price") +
+    ylab("bitcoin price ($)") +
+    theme_light()
+```
+
+```{r}
+babynames %>%
+  ggplot( aes(x=year, y=n, group=name, fill=name)) +
+    geom_area() +
+    #scale_fill_viridis(discrete = TRUE) +
+    theme(legend.position="none") +
+    ggtitle("Area chart - Popularity of American names in the previous 30 years") +
+    theme_classic() +
+    theme(
+      legend.position="none",
+      panel.spacing = unit(0.1, "lines"),
+      strip.text.x = element_text(size = 8)
+    ) +
+    facet_wrap(~name, scale="free_y")
+```
+
+```{r}
+p <- babynames %>% 
+  ggplot( aes(x=year, y=n, fill=name, text=name)) +
+    geom_area( ) +
+    #scale_fill_viridis(discrete = TRUE) +
+    theme(legend.position="none") +
+    ggtitle("Stack area chart - Popularity of American names in the previous 30 years") +
+      theme() +
+    theme(legend.position="none")
+ggplotly(p, tooltip="text")
+```
+
+*Effective for*
+<br>
+1. Showing the **rise and fall** of various data series over time
+<br>
+2. Emphasizing a **part-to-whole relationship over time** when one part is very large, or changes from being very large to very small
+<br>
+3. Showing **change over time in individual panels** of a small multiple chart
+</p>
+<p align='justify'>
+*Not the ideal choice for*
+<br>
+1. Data sets on scales that **do not have a meaningful relationship to zero**
+<br>
+2. Showing several **volatile data sets over time**
+<br>
+3. Showing **fine differences** in values
+</p>
+
+3. **Spaghetti plot**
+<p align='justify'>
+A Spaghetti plot is a line plot with many lines displayed together. It is a plot that depicts the outcome as a function of time for each individual subject.
+</p>
+
+```{r}
+babynames %>%
+  mutate( highlight=ifelse(name=="Ashley", "Ashley", "Other")) %>%
+  ggplot( aes(x=year, y=n, group=name, color=highlight, size=highlight)) +
+    geom_line() +
+    scale_color_manual(values = c("#69b3a2", "lightgrey")) +
+    scale_size_manual(values=c(1.5,0.2)) +
+    theme(legend.position="none") +
+    ggtitle("Spaghetti plot- Popularity of American names in the previous 30 years") +
+    theme_light() +
+    geom_label( x=1990, y=55000, label="Ashley reached 3550\nbabies in 1970", size=4, color="#69b3a2")
+```
+<p align='justify'>
+*Effective for*
+<br>
+1. Maping the area you want to analyze
+</p>
+<p align='justify'>
+*Problems with Spaghetti plot*
+<br>
+1. Hard to read, and thus provides few insights about the data.
+</p>
+<br>
+[![Spaghetti plot in forecasting](https://i.insider.com/59b063a4609c3020008b46eb?width=1300&format=jpeg&auto=webp)](https://www.businessinsider.com/hurricane-irma-spaghetti-models-landfall-2017-9)
+<br>
+*Solutions:* <https://www.storytellingwithdata.com/blog/2013/03/avoiding-spaghetti-graph>
+
+## Power BI and Tableau:
+
+## References:
+<p align='justify'>
+1. https://allthingsstatistics.com/miscellaneous/line-graphs-advantages-disadvantages/
+2. https://www.indeed.com/career-advice/career-development/a-guide-to-area-charts
+3. https://www.storytellingwithdata.com/blog/2013/03/avoiding-spaghetti-graph
+</p>
